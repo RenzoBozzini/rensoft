@@ -1,45 +1,291 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rensoft · Control, capacitación y auditorías</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>rensoft — control inteligente de flotas con gps</title>
+  <meta name="description" content="rensoft: seguimiento GPS + mantenimiento + costos + tableros. Instalación en Rosario o kit preconfigurado (OBD o cableado a batería) listo para usar.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html{scroll-behavior:smooth}
+    body{font-family:Inter,system-ui;background:#0b1018;color:#e2e8f0}
+    .brand{font-family:Orbitron,Inter,system-ui}
+    .copy{color:#cbd5e1}
+    .bg-orb{
+      background:
+        radial-gradient(1200px 600px at 90% -10%, rgba(14,165,233,.22), transparent 60%),
+        radial-gradient(900px 600px at -10% 110%, rgba(0,255,187,.18), transparent 60%);
+    }
+    .card{background:rgba(13,17,23,.85);border:1px solid rgba(255,255,255,.12)}
+    .chip{background:linear-gradient(135deg,#00aaff33,#00ffbb33);border:1px solid #00ffbb55}
+    .badge{background:rgba(0,255,187,.12);border:1px solid rgba(0,255,187,.35);color:#8fffe0}
+    .accent{color:#8fffe0}
+    .accent2{color:#7cc8ff}
+  </style>
 </head>
-<body>
-  <header>
-    <h1>Rensoft</h1>
-    <nav>
-      <a href="#servicios">Servicios</a>
-      <a href="#casos">Casos</a>
-      <a href="contacto.html">Contacto</a>
-    </nav>
+<body class="bg-orb">
+  <!-- NAV -->
+  <header class="sticky top-0 z-50 backdrop-blur bg-[#0b1018cc] border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl" style="background:linear-gradient(135deg,#00aaff,#00ffbb)"></span>
+        <span class="brand text-lg font-extrabold tracking-wide lowercase">rensoft</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-[15px]">
+        <a href="#como-funciona" class="hover:text-[#8fffe0]">Cómo funciona</a>
+        <a href="#modulos" class="hover:text-[#8fffe0]">Módulos</a>
+        <a href="#planes" class="hover:text-[#8fffe0]">Planes</a>
+        <a href="#instalacion" class="hover:text-[#8fffe0]">Instalación</a>
+        <a href="#contacto" class="px-3 py-1.5 rounded-xl border border-[#00ffbb55] text-[#8fffe0] hover:bg-[#00ffbb22]">Contacto</a>
+        <a href="demo-mapa.html" class="hover:text-[#8fffe0]">Demo mapa</a>
+      </nav>
+    </div>
   </header>
 
-  <section id="hero">
-    <h2>Software y servicios listos para operar</h2>
-    <p>Control de flotas, capacitación y auditorías con Notion, QR y automatizaciones.</p>
-    <a href="contacto.html" class="boton">Pedir demo</a>
+  <!-- HERO -->
+  <section class="relative">
+    <div class="max-w-7xl mx-auto px-4 pt-14 pb-12 grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <h1 class="brand text-4xl md:text-6xl font-bold leading-[1.05] lowercase">
+          control inteligente de flotas con gps
+        </h1>
+        <p class="copy mt-5 text-lg leading-relaxed">
+          Seguimiento GPS + mantenimiento + costos + alertas. Todo en una sola vista, simple y clara.
+          Ideal para remises, autos de app y pymes con 2 a 50 vehículos.
+        </p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="#contacto" class="px-6 py-3 rounded-2xl bg-[#00ffbb] hover:bg-[#7affe0] text-[#0b1018] font-semibold shadow-[0_10px_30px_rgba(0,0,0,.25)]">Quiero un piloto</a>
+          <a href="#modulos" class="px-6 py-3 rounded-2xl border border-white/20 hover:border-white/40">Ver módulos</a>
+        </div>
+        <p class="mt-4 text-[13px] text-slate-400">Hecho en Rosario · pensado para operar ya</p>
+      </div>
+
+      <!-- “Panel” mock visual -->
+      <div class="relative">
+        <div class="card rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,.25)]">
+          <div class="flex items-center justify-between">
+            <span class="badge px-3 py-1.5 rounded-lg text-xs">demo</span>
+            <span class="text-xs text-slate-400">rensoft panel</span>
+          </div>
+          <div class="grid sm:grid-cols-3 gap-4 mt-4 text-sm">
+            <div class="card rounded-2xl p-4">
+              <div class="text-xs text-slate-400">Disponibilidad</div>
+              <div class="mt-1 text-2xl font-bold accent">92%</div>
+              <div class="mt-2 h-1.5 rounded bg-[#0f172a]">
+                <div class="h-1.5 rounded" style="width:92%;background:linear-gradient(90deg,#00aaff,#00ffbb)"></div>
+              </div>
+            </div>
+            <div class="card rounded-2xl p-4">
+              <div class="text-xs text-slate-400">Mantenimientos</div>
+              <div class="mt-1 text-2xl font-bold accent2">3</div>
+              <p class="text-[12px] text-slate-400 mt-1">próximos 7 días</p>
+            </div>
+            <div class="card rounded-2xl p-4">
+              <div class="text-xs text-slate-400">Alertas</div>
+              <div class="mt-1 text-2xl font-bold" style="color:#ffb86b">2</div>
+              <p class="text-[12px] text-slate-400 mt-1">vencimientos</p>
+            </div>
+          </div>
+          <div class="mt-5 card rounded-2xl p-4">
+            <div class="text-xs text-slate-400 mb-2">Mapa (demo)</div>
+            <div class="h-40 rounded-xl relative overflow-hidden" style="background:
+              linear-gradient(#0d1b2a,#0a1420),
+              url('https://tile.openstreetmap.org/10/535/658.png') center/cover no-repeat;">
+              <div class="absolute top-4 left-5 px-2 py-1 rounded-lg chip text-xs text-white/90">vehículo AG210 · en marcha</div>
+              <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(600px 200px at 20% -20%,#00aaff22,transparent 60%)"></div>
+            </div>
+          </div>
+        </div>
+        <span class="absolute -right-3 -bottom-4 px-3 py-1.5 rounded-xl chip text-xs">ingreso de datos con <b>códigos QR</b></span>
+      </div>
+    </div>
   </section>
 
-  <section id="servicios">
-    <h2>Servicios</h2>
-    <ul>
-      <li><b>Control de flotas:</b> QR por móvil, mantenimiento y tableros Looker.</li>
-      <li><b>Capacitación:</b> cursos con video, lectura y evaluación.</li>
-      <li><b>Auditorías:</b> evidencias MCC/MTAR/SMS, CAPs y cumplimiento BARS.</li>
-    </ul>
+  <!-- CÓMO FUNCIONA -->
+  <section id="como-funciona" class="py-16 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-4">
+      <h2 class="brand text-3xl md:text-4xl font-bold lowercase">cómo funciona</h2>
+      <div class="grid md:grid-cols-3 gap-6 mt-8">
+        <div class="card rounded-2xl p-6">
+          <div class="text-sm accent">1) Alta de vehículos</div>
+          <p class="copy mt-2 text-[15px]">Cargamos tus móviles (datos básicos, vencimientos y responsables). Te entregamos QR para reportar novedades desde el celular.</p>
+        </div>
+        <div class="card rounded-2xl p-6">
+          <div class="text-sm accent">2) GPS a tu medida</div>
+          <p class="copy mt-2 text-[15px]">Elegís <b>OBD plug & play</b> o <b>GPS cableado a batería</b>. En Rosario lo instalamos nosotros. En el resto del país te enviamos el <b>kit rensoft</b> preconfigurado con SIM lista.</p>
+        </div>
+        <div class="card rounded-2xl p-6">
+          <div class="text-sm accent">3) Tablero y alertas</div>
+          <p class="copy mt-2 text-[15px]">Ves el mapa en vivo, mantenimientos, costos y alertas próximas. Tomás decisiones con información clara.</p>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <section id="casos">
-    <h2>Casos reales</h2>
-    <p><b>SIES Rosario:</b> control de flota y gestión de mantenimiento.</p>
-    <p><b>Flytec:</b> capacitación técnica para mecánicos aeronáuticos.</p>
-    <p><b>Milenium Air:</b> auditorías BARS y RAAC con evidencias digitales.</p>
+  <!-- MÓDULOS -->
+  <section id="modulos" class="py-16 bg-[#0f1522]">
+    <div class="max-w-7xl mx-auto px-4">
+      <h2 class="brand text-3xl md:text-4xl font-bold lowercase">módulos del sistema</h2>
+      <div class="grid md:grid-cols-4 gap-6 mt-8">
+        <div class="card rounded-2xl p-6 hover:-translate-y-1 transition">
+          <h3 class="font-semibold">Flota</h3>
+          <ul class="copy text-[15px] mt-2 space-y-1 list-disc list-inside">
+            <li>Ficha por vehículo y base</li>
+            <li>Historial y documentos</li>
+            <li>Vencimientos</li>
+          </ul>
+        </div>
+        <div class="card rounded-2xl p-6 hover:-translate-y-1 transition">
+          <h3 class="font-semibold">Mantenimiento</h3>
+          <ul class="copy text-[15px] mt-2 space-y-1 list-disc list-inside">
+            <li>Plan y checklists</li>
+            <li>Costos y repuestos</li>
+            <li>Alertas próximas</li>
+          </ul>
+        </div>
+        <div class="card rounded-2xl p-6 hover:-translate-y-1 transition">
+          <h3 class="font-semibold">GPS</h3>
+          <ul class="copy text-[15px] mt-2 space-y-1 list-disc list-inside">
+            <li>Mapa en vivo</li>
+            <li>Rutas e histórico</li>
+            <li>Detenciones y zonas</li>
+          </ul>
+        </div>
+        <div class="card rounded-2xl p-6 hover:-translate-y-1 transition">
+          <h3 class="font-semibold">Reportes</h3>
+          <ul class="copy text-[15px] mt-2 space-y-1 list-disc list-inside">
+            <li>Disponibilidad</li>
+            <li>Consumos y costos</li>
+            <li>Tableros personalizados</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <footer>
-    <p>© 2025 Rensoft. Rosario, Argentina.</p>
+  <!-- PLANES -->
+  <section id="planes" class="py-16">
+    <div class="max-w-7xl mx-auto px-4">
+      <h2 class="brand text-3xl md:text-4xl font-bold lowercase">planes</h2>
+      <div class="grid md:grid-cols-2 gap-6 mt-8">
+        <div class="card rounded-2xl p-6">
+          <div class="text-sm accent2 mb-1">rensoft básico</div>
+          <h3 class="text-xl font-semibold">Gestión de flota</h3>
+          <ul class="copy text-[15px] mt-3 space-y-1 list-disc list-inside">
+            <li>Altas y fichas por vehículo</li>
+            <li>Mantenimientos y costos</li>
+            <li>Alertas y vencimientos</li>
+            <li>QR para reportes desde el celular</li>
+          </ul>
+          <div class="mt-5 flex items-center gap-3">
+            <a href="#contacto" class="px-5 py-2.5 rounded-xl border border-white/20 hover:bg-white/5">Quiero este</a>
+          </div>
+        </div>
+        <div class="card rounded-2xl p-6">
+          <div class="text-sm accent mb-1">rensoft gps</div>
+          <h3 class="text-xl font-semibold">Gestión + seguimiento</h3>
+          <ul class="copy text-[15px] mt-3 space-y-1 list-disc list-inside">
+            <li>Todo lo del básico</li>
+            <li><b>GPS en vivo</b> (OBD o cableado a batería)</li>
+            <li>SIM incluida y preconfigurada</li>
+            <li>Rutas, histórico y alertas</li>
+          </ul>
+          <div class="mt-5 flex items-center gap-3">
+            <a href="#contacto" class="px-5 py-2.5 rounded-xl bg-[#00ffbb] text-[#0b1018] hover:bg-[#7affe0] font-semibold">Probar rensoft gps</a>
+          </div>
+        </div>
+      </div>
+      <p class="text-sm text-slate-400 mt-4">Planes por vehículo. Descuentos por volumen.</p>
+    </div>
+  </section>
+
+  <!-- INSTALACIÓN -->
+  <section id="instalacion" class="py-16 bg-[#0f1522]">
+    <div class="max-w-7xl mx-auto px-4">
+      <h2 class="brand text-3xl md:text-4xl font-bold lowercase">instalación y envíos</h2>
+      <div class="grid md:grid-cols-2 gap-6 mt-8">
+        <div class="card rounded-2xl p-6">
+          <h3 class="font-semibold">Si estás en Rosario</h3>
+          <p class="copy mt-2 text-[15px]">Instalamos nosotros y dejamos todo funcionando. Prueba en el momento y acceso al panel.</p>
+        </div>
+        <div class="card rounded-2xl p-6">
+          <h3 class="font-semibold">Si estás en otra ciudad</h3>
+          <p class="copy mt-2 text-[15px]">
+            Te enviamos el <b>kit rensoft</b> listo para instalar:
+            <b>OBD</b> plug & play o <b>GPS cableado a batería</b> con <b>chicote y terminales</b>.
+            Llega con la <b>SIM preconfigurada</b>. Lo puede colocar cualquiera siguiendo una hoja de instalación.
+          </p>
+        </div>
+      </div>
+      <div class="mt-6 card rounded-2xl p-6">
+        <h3 class="font-semibold">Qué incluye el kit rensoft</h3>
+        <ul class="copy text-[15px] mt-2 grid sm:grid-cols-2 gap-x-6 gap-y-1 list-disc list-inside">
+          <li>Módulo OBD o GPS cableado (según vehículo)</li>
+          <li>SIM activada y configurada</li>
+          <li>Chicote + terminales prolijas</li>
+          <li>Guía paso a paso con fotos</li>
+          <li>Acceso a panel de monitoreo</li>
+          <li>Soporte remoto para la primera puesta en marcha</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / CONTACTO -->
+  <section id="contacto" class="py-16 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-4 grid md:grid-cols-2 gap-6 items-center">
+      <div>
+        <h3 class="brand text-2xl md:text-3xl font-bold lowercase">empezá con un piloto</h3>
+        <p class="copy mt-2">Contame cuántos vehículos tenés y cómo los usás. Armamos un piloto en pocos días para que lo pruebes con tus datos.</p>
+        <div class="mt-4 text-sm">
+          <div class="text-slate-400">Email: <a class="accent2" href="mailto:renzobozzini@gmail.com">renzobozzini@gmail.com</a></div>
+          <div class="text-slate-400 mt-1">WhatsApp: <a class="accent2" href="https://wa.me/5493416286070?text=Hola%20rensoft%2C%20quiero%20un%20piloto">+54 9 341 628 6070</a></div>
+        </div>
+      </div>
+      <div class="card rounded-2xl p-6">
+        <form onsubmit="enviar(event)" class="grid gap-3">
+          <input class="px-4 py-3 rounded-xl bg-[#0c1422] border border-white/10" type="text" id="n" placeholder="Tu nombre" required>
+          <input class="px-4 py-3 rounded-xl bg-[#0c1422] border border-white/10" type="email" id="e" placeholder="Tu email" required>
+          <textarea class="px-4 py-3 rounded-xl bg-[#0c1422] border border-white/10" id="m" rows="4" placeholder="Cantidad de vehículos, ciudad y necesidad..." required></textarea>
+          <button class="px-6 py-3 rounded-2xl bg-[#00ffbb] text-[#0b1018] font-semibold hover:bg-[#7affe0]">Enviar por email</button>
+        </form>
+        <script>
+          function enviar(ev){
+            ev.preventDefault();
+            const asunto = encodeURIComponent('Consulta piloto rensoft');
+            const cuerpo = encodeURIComponent(
+              'Nombre: ' + document.getElementById('n').value + '\\n' +
+              'Email: ' + document.getElementById('e').value + '\\n\\n' +
+              document.getElementById('m').value
+            );
+            window.location.href = 'mailto:renzobozzini@gmail.com?subject=' + asunto + '&body=' + cuerpo;
+          }
+        </script>
+        <p class="text-xs text-slate-500 mt-3">También podés escribir directo a WhatsApp y coordinamos.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="py-10">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row gap-4 md:items-center justify-between text-sm text-slate-400">
+      <div>© <span id="year"></span> rensoft. todos los derechos reservados.</div>
+      <div>rensoft.com.ar</div>
+    </div>
   </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded',()=>{
+      const y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
+      document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
+        const id=a.getAttribute('href').slice(1), el=document.getElementById(id);
+        if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth'}) }
+      }));
+    });
+  </script>
 </body>
 </html>
+
+

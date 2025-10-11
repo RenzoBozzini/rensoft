@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>rensoft — demo mapa gps</title>
+
+  <!-- Tipografías -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    :root{
+      --bg:#0b1018; --panel:#0f1522; --ink:#e2e8f0;
+      --line:rgba(255,255,255,.12);
+      --accent:#00ffbb; --accent2:#00aaff;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui}
+    .brand{font-family:Orbitron,Inter,system-ui}
+    #map{height:calc(100vh - 96px)} /* alto total menos header */
+    .card{background:rgba(13,17,23,.85);border:1px solid var(--line)}
+    .chip{background:linear-gradient(135deg,#00aaff33,#00ffbb33);border:1px solid #00ffbb55}
+    .leaflet-control-attribution{display:none} /* limpio la marca visual */
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="sticky top-0 z-50 backdrop-blur bg-[#0b1018cc] border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl" style="background:linear-gradient(135deg,#00aaff,#00ffbb)"></span>
+        <span class="brand text-lg font-extrabold tracking-wide lowercase">rensoft</span>
+      </a>
+      <div class="flex items-center gap-2">
+        <button id="btnCenter" class="px-3 py-2 text-sm rounded-xl border border-white/20 hover:border-white/40">Centrar mapa</button>
+        <button id="btnReload" class="px-3 py-2 text-sm rounded-xl" style="background:var(--accent);color:#0b1018">Actualizar</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Panel superior -->
+  <section class="max-w-7xl mx-auto px-4 py-4 grid sm:grid-cols-3 gap-4">
+    <div class="card rounded-2xl p-4">
+      <div class="text-xs text-slate-400">Disponibilidad</div>
+      <div id="kpiDisp" class="mt-1 text-2xl font-bold" style="color:#8fffe0">—</div>
+      <div class="mt-2 h-1.5 rounded bg-[#0f172a]"><div id="barDisp" class="h-1.5 rounded" style="width:0;background:linear-gradient(90deg,#00aaff,#00ffbb)"></div></div>
+    </div>
+    <div class="card rounded-2xl p-4">
+      <div class="text-xs text-slate-400">Activos en marcha</div>
+      <div id="kpiRun" class="mt-1 text-2xl font-bold" style="color:#7cc8ff">—</div>
+      <div class="text-[12px] text-slate-400 mt-1">última actualización <span id="ts">—</span></div>
+    </div>
+    <div class="card rounded-2xl p-4">
+      <div class="text-xs text-slate-400 mb-2">Leyenda</div>
+      <div class="flex items-center gap-4 text-sm">
+        <span class="inline-flex items-center gap-2"><i class="w-3 h-3 rounded-full" style="background:#22c55e"></i> En marcha</span>
+        <span class="inline-flex items-center gap-2"><i class="w-3 h-3 rounded-full" style="background:#eab308"></i> Detenido</span>
+        <span class="inline-flex items-center gap-2"><i class="w-3 h-3 rounded-full" style="background:#ef4444"></i> Fuera de servicio</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mapa -->
+  <div id="map"></div>
+
+  <script>
+    // --- Config inicial ---
+    const ROSARIO = [-32.9587, -60.6939];
+    const map = L.map('map',{zoomControl:true}).setView(ROSARIO, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    // Estado simulado de móviles
+    let mobiles = [
+      { id:'AG210ZF', alias:'móvil ZF', lat:ROSARIO[0], lng:ROSARIO[1], vel:0, estado:'detenido' },
+      { id:'AG210ZG', alias:'móvil ZG', lat:ROSARIO[0]+0.02, lng:ROSARIO[1]-0.02, vel:0, estado:'detenido' },
+      { id:'AG210ZH', alias:'móvil ZH', lat:ROSARIO[0]-0.015, lng:ROSARIO[1]+0.018, vel:0, estado:'detenido' },
+    ];
+
+    // Markers
+    const markers = {};
+    const colorByEstado = (estado) => ({
+      'marcha': '#22c55e',
+      'detenido': '#eab308',
+      'fuera': '#ef4444'
+    }[estado] || '#eab308');
+
+    function drawOrUpdate(m) {
+      const color = colorByEstado(m.estado);
+      const opts = { radius: 8, color: color, fillColor: color, fillOpacity: 0.9, weight: 2 };
+      if (!markers[m.id]) {
+        markers[m.id] = L.circleMarker([m.lat, m.lng], opts)
+          .bindPopup(`<b>${m.alias}</b><br>Vel: ${m.vel} km/h<br>Estado: ${m.estado}`)
+          .addTo(map);
+      } else {
+        markers[m.id].setLatLng([m.lat, m.lng]).setStyle(opts)
+          .setPopupContent(`<b>${m.alias}</b><br>Vel: ${m.vel} km/h<br>Estado: ${m.estado}`);
+      }
+    }
+
+    function jitter(v, mag){ return v + (Math.random()-0.5)*mag; }
+
+    // Simula movimiento y estados
+    function tick() {
+      mobiles = mobiles.map(m => {
+        // Probabilidad de cambiar estado
+        const p = Math.random();
+        if (p < 0.60) { m.estado = 'marcha'; m.vel = Math.floor(30 + Math.random()*40); }
+        else if (p < 0.90) { m.estado = 'detenido'; m.vel = 0; }
+        else { m.estado = 'fuera'; m.vel = 0; }
+
+        // Si está en marcha, mover un poco
+        if (m.estado === 'marcha') {
+          m.lat = jitter(m.lat, 0.003);
+          m.lng = jitter(m.lng, 0.003);
+        }
+
+        drawOrUpdate(m);
+        return m;
+      });
+
+      // KPIs
+      const total = mobiles.length;
+      const running = mobiles.filter(x => x.estado==='marcha').length;
+      const disp = Math.round(((total - mobiles.filter(x => x.estado==='fuera').length) / total) * 100);
+      document.getElementById('kpiRun').textContent = running;
+      document.getElementById('kpiDisp').textContent = disp + '%';
+      document.getElementById('barDisp').style.width = disp + '%';
+      document.getElementById('ts').textContent = new Date().toLocaleTimeString();
+    }
+
+    // Controles
+    document.getElementById('btnReload').addEventListener('click', tick);
+    document.getElementById('btnCenter').addEventListener('click', () => {
+      const group = L.featureGroup(Object.values(markers));
+      map.fitBounds(group.getBounds().pad(0.25));
+    });
+
+    // Primer render + ciclo
+    tick();
+    setInterval(tick, 12000);
+  </script>
+</body>
+</html>

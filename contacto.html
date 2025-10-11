@@ -1,33 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contacto · Rensoft</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>contacto · rensoft</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body{background:#0a0f1a;color:#e2e8f0;font-family:Inter,system-ui}</style>
 </head>
 <body>
-  <header>
-    <h1>Rensoft</h1>
-    <nav>
-      <a href="index.html">Inicio</a>
-    </nav>
-  </header>
-
-  <section>
-    <h2>Contacto</h2>
-    <p>También podés escribir directo a WhatsApp: <a href="https://wa.me/5493416286070">341 628 6070</a></p>
-    <form name="contacto" method="POST" data-netlify="true">
-      <input type="hidden" name="form-name" value="contacto">
-      <p><input type="text" name="nombre" placeholder="Tu nombre" required></p>
-      <p><input type="email" name="email" placeholder="Tu email" required></p>
-      <p><textarea name="mensaje" placeholder="Tu mensaje..." required></textarea></p>
-      <button type="submit">Enviar</button>
-    </form>
-  </section>
-
-  <footer>
-    <p>© 2025 Rensoft</p>
-  </footer>
+  <div class="max-w-3xl mx-auto p-6">
+    <a href="index.html" class="text-sky-400">← volver</a>
+    <h1 class="brand text-3xl font-extrabold mt-3" style="font-family:Orbitron,Inter,system-ui">contacto</h1>
+    <p class="mt-2" style="color:#cbd5e1">Escribime directo o mandame un WhatsApp y te respondo a la brevedad.</p>
+    <div class="grid md:grid-cols-2 gap-6 mt-6">
+      <div class="rounded-2xl" style="background:rgba(15,23,42,.82);border:1px solid rgba(255,255,255,.12);padding:20px">
+        <h2 class="font-semibold">Email</h2>
+        <p class="mt-2"><a class="text-sky-300" href="mailto:renzobozzini@gmail.com">renzobozzini@gmail.com</a></p>
+        <h2 class="font-semibold mt-6">WhatsApp</h2>
+        <a class="inline-block mt-3 px-5 py-3 rounded-2xl bg-sky-500 text-slate-950 font-semibold" href="https://wa.me/5493416286070?text=Hola%20rensoft%2C%20quiero%20un%20piloto">Abrir WhatsApp</a>
+      </div>
+      <div class="rounded-2xl" style="background:rgba(15,23,42,.82);border:1px solid rgba(255,255,255,.12);padding:20px">
+        <h2 class="font-semibold">Mensaje rápido</h2>
+        <form onsubmit="enviar(event)" class="mt-3 grid gap-3">
+          <input class="px-4 py-3 rounded-xl bg-slate-900 border border-white/10" type="text" id="n" placeholder="Tu nombre" required>
+          <input class="px-4 py-3 rounded-xl bg-slate-900 border border-white/10" type="email" id="e" placeholder="Tu email" required>
+          <textarea class="px-4 py-3 rounded-xl bg-slate-900 border border-white/10" id="m" rows="4" placeholder="Tu mensaje..." required></textarea>
+          <button class="px-6 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-semibold">Enviar por email</button>
+        </form>
+        <script>
+          function enviar(ev){
+            ev.preventDefault();
+            const asunto = encodeURIComponent('Consulta desde rensoft');
+            const cuerpo = encodeURIComponent(
+              'Nombre: ' + document.getElementById('n').value + '\\n' +
+              'Email: ' + document.getElementById('e').value + '\\n\\n' +
+              document.getElementById('m').value
+            );
+            window.location.href = 'mailto:renzobozzini@gmail.com?subject=' + asunto + '&body=' + cuerpo;
+          }
+        </script>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
+
