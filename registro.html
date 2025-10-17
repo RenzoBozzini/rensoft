@@ -55,6 +55,7 @@
       </nav>
     </div>
   </header>
+
   <main class="flex-1">
     <section class="max-w-4xl mx-auto px-4 py-12">
       <h1 class="brand text-3xl md:text-4xl font-bold lowercase">registro de flotas</h1>
@@ -62,6 +63,7 @@
         Completá el formulario para crear un usuario administrador, cargar los vehículos de tu flota y obtener un código QR seguro.
         Ese código te permitirá reportar novedades desde cualquier celular sin exponer la contraseña del panel principal.
       </p>
+
       <form id="fleet-form" class="card rounded-3xl mt-8 p-6 md:p-8 grid gap-6">
         <div class="grid md:grid-cols-2 gap-5">
           <label>
@@ -107,6 +109,7 @@
             <input type="text" id="fleetName" name="fleetName" required placeholder="p.ej. Taxis Rosario" />
           </label>
         </div>
+
         <div class="border border-white/10 rounded-3xl p-5 bg-[#0e1626]">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -117,6 +120,7 @@
           </div>
           <div id="vehicles" class="grid gap-4 mt-5"></div>
         </div>
+
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div class="text-xs text-slate-500">
             Al finalizar se generará un QR único para esta flota. Guardalo y pegalo en el parabrisas de cada vehículo.
@@ -124,6 +128,7 @@
           <button type="submit" class="px-6 py-3 rounded-2xl bg-[#00ffbb] text-[#0b1018] font-semibold hover:bg-[#7affe0]">Generar QR de registro</button>
         </div>
       </form>
+
       <section id="result" class="hidden card rounded-3xl mt-10 p-6 md:p-8 grid gap-6">
         <div>
           <h2 class="text-xl font-semibold">Registro creado correctamente</h2>
@@ -145,14 +150,40 @@
       </section>
     </section>
   </main>
+
   <footer class="py-10">
     <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row gap-4 md:items-center justify-between text-sm text-slate-500">
       <div>© <span id="year"></span> rensoft. todos los derechos reservados.</div>
       <div>rensoft.com.ar</div>
     </div>
   </footer>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha256-1IsfRSAxEPPGjBJOCa/MEGLjm+rXhN3kLBXjg5eQqr8=" crossorigin="anonymous"></script>
+
   <script>
+    let qrCodeLoaderPromise = null;
+
+    function loadQRCodeLibrary(){
+      if(window.QRCode){
+        return Promise.resolve(window.QRCode);
+      }
+      if(!qrCodeLoaderPromise){
+        qrCodeLoaderPromise = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+          script.async = true;
+          script.onload = () => {
+            if(window.QRCode){
+              resolve(window.QRCode);
+            }else{
+              reject(new Error('La librería de QR no se inicializó correctamente.'));
+            }
+          };
+          script.onerror = () => reject(new Error('No se pudo cargar la librería para generar códigos QR. Verificá tu conexión e intentá de nuevo.'));
+          document.head.appendChild(script);
+        });
+      }
+      return qrCodeLoaderPromise;
+    }
+
     const vehiclesContainer = document.getElementById('vehicles');
     const addVehicleBtn = document.getElementById('add-vehicle');
     const form = document.getElementById('fleet-form');
@@ -164,7 +195,9 @@
     const qrLink = document.getElementById('qr-link');
     const passwordInput = document.getElementById('password');
     const confirmPasswordInput = document.getElementById('confirmPassword');
+
     let vehicleIndex = 0;
+
     function createVehicleCard(index){
       const wrapper = document.createElement('div');
       wrapper.className = 'card rounded-2xl p-5 border border-white/10 bg-[#0b121e]';
@@ -185,12 +218,14 @@
       `;
       return wrapper;
     }
+
     function addVehicle(){
       const card = createVehicleCard(vehicleIndex++);
       vehiclesContainer.appendChild(card);
       setupPlateInput(card.querySelector('.vehicle-plate'));
       updateRemoveButtons();
     }
+
     function setupPlateInput(input){
       if(!input) return;
       input.addEventListener('input', () => {
@@ -201,6 +236,7 @@
         input.value = value;
       });
     }
+
     function updateRemoveButtons(){
       vehiclesContainer.querySelectorAll('button[data-remove]').forEach(btn => {
         btn.onclick = () => {
@@ -216,6 +252,7 @@
         };
       });
     }
+
     async function hashPassword(password){
       if(window.crypto?.subtle){
         const encoder = new TextEncoder();
@@ -225,12 +262,14 @@
       }
       return btoa(password);
     }
+
     function generateFleetId(){
       if(window.crypto?.randomUUID){
         return crypto.randomUUID();
       }
       return 'fleet-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
+
     function openFleetDb(){
       return new Promise((resolve, reject) => {
         if(!('indexedDB' in window)){
@@ -256,6 +295,7 @@
         request.onerror = () => reject(request.error);
       });
     }
+
     async function saveFleetRecord(record){
       const db = await openFleetDb();
       return new Promise((resolve, reject) => {
@@ -271,13 +311,16 @@
         tx.objectStore('fleets').put(record);
       });
     }
+
     function clearQR(){
       qrContainer.innerHTML = '';
     }
-    function renderQR(url){
+
+    async function renderQR(url){
       clearQR();
       const canvas = document.createElement('canvas');
       qrContainer.appendChild(canvas);
+      const QRCode = await loadQRCodeLibrary();
       return new Promise((resolve, reject) => {
         QRCode.toCanvas(canvas, url, { width: 220, margin: 1, color: { dark: '#0b1018', light: '#ffffff' } }, (error) => {
           if(error){
@@ -288,6 +331,7 @@
         });
       });
     }
+
     function triggerDownload(url, filename){
       const link = document.createElement('a');
       link.href = url;
@@ -296,6 +340,7 @@
       link.click();
       document.body.removeChild(link);
     }
+
     function slugify(text){
       return (text || '')
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -304,6 +349,7 @@
         .replace(/^-+|-+$/g, '')
         .slice(0, 50) || 'flota';
     }
+
     function downloadCanvasAsImage(canvas, fleetName){
       const filename = `qr-${slugify(fleetName)}.png`;
       if(canvas.toBlob){
@@ -320,6 +366,7 @@
         triggerDownload(canvas.toDataURL('image/png'), filename);
       }
     }
+
     function buildVehicleSummary(vehicles){
       summaryVehicles.innerHTML = '';
       vehicles.forEach(v => {
@@ -328,6 +375,7 @@
         summaryVehicles.appendChild(li);
       });
     }
+
     function resetPasswordFields(){
       [passwordInput, confirmPasswordInput].forEach(input => {
         if(!input) return;
@@ -338,8 +386,10 @@
         btn.textContent = 'Mostrar';
       });
     }
+
     addVehicleBtn.addEventListener('click', addVehicle);
     addVehicle();
+
     document.querySelectorAll('.password-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const targetId = btn.dataset.target;
@@ -350,16 +400,20 @@
         btn.textContent = type === 'password' ? 'Mostrar' : 'Ocultar';
       });
     });
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+
       try {
         if(passwordInput.value !== confirmPasswordInput.value){
           alert('Las contraseñas no coinciden. Verificalas antes de continuar.');
           return;
         }
+
         const formData = new FormData(form);
         const vehicles = [];
         const vehicleCards = Array.from(vehiclesContainer.children);
+
         for (const card of vehicleCards){
           const idx = Number(card.dataset.vehicleIndex);
           const plate = formData.get(`vehicle-${idx}-plate`)?.toString().trim().toUpperCase();
@@ -368,16 +422,20 @@
           const year = formData.get(`vehicle-${idx}-year`)?.toString().trim();
           const category = formData.get(`vehicle-${idx}-category`)?.toString().trim();
           const internal = formData.get(`vehicle-${idx}-internal`)?.toString().trim();
+
           if(!plate || !brand || !model || !year){
             alert('Completá todos los campos obligatorios de los vehículos.');
             return;
           }
+
           vehicles.push({ plate, brand, model, year, category: category || null, internal: internal || null });
         }
+
         if(!vehicles.length){
           alert('Tenés que cargar al menos un vehículo.');
           return;
         }
+
         const fleetId = generateFleetId();
         const fleetName = formData.get('fleetName')?.toString().trim() ?? '';
         const payload = {
@@ -391,14 +449,18 @@
           vehicles,
           createdAt: new Date().toISOString()
         };
+
         await saveFleetRecord(payload);
+
         const qrUrl = new URL(`novedades.html?fleet=${encodeURIComponent(fleetId)}`, window.location.href).toString();
         const canvas = await renderQR(qrUrl);
         downloadCanvasAsImage(canvas, fleetName || 'flota');
+
         summaryFleet.textContent = payload.fleetName;
         summaryManager.textContent = `${payload.firstName} ${payload.lastName} · ${payload.email}`;
         buildVehicleSummary(vehicles);
         qrLink.href = qrUrl;
+
         resultSection.classList.remove('hidden');
         resultSection.scrollIntoView({ behavior: 'smooth' });
         form.reset();
@@ -411,8 +473,10 @@
         alert(error?.message || 'No pudimos guardar la flota. Reintentá más tarde.');
       }
     });
+
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
+
 

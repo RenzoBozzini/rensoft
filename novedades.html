@@ -27,11 +27,13 @@
       <span id="fleet-label" class="text-xs text-slate-400 uppercase tracking-[0.2em]"></span>
     </div>
   </header>
+
   <main class="flex-1">
     <section class="max-w-4xl mx-auto px-4 py-10">
       <div class="card rounded-3xl p-6 md:p-8">
         <h1 class="text-2xl font-semibold">Registrar novedad</h1>
         <p class="text-sm text-slate-400 mt-2">Completá el formulario desde el vehículo. Cada registro queda disponible para el responsable de la flota.</p>
+
         <form id="incident-form" class="mt-6 grid gap-5">
           <div class="grid md:grid-cols-2 gap-4">
             <label class="grid gap-2 text-sm">
@@ -66,6 +68,7 @@
           <button type="submit" class="justify-self-start px-6 py-3 rounded-2xl bg-[#00ffbb] text-[#0b1018] font-semibold hover:bg-[#7affe0]">Guardar novedad</button>
         </form>
       </div>
+
       <section id="log" class="mt-8 card rounded-3xl p-6 md:p-8 hidden">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h2 class="text-xl font-semibold">Historial en este dispositivo</h2>
@@ -76,9 +79,11 @@
       </section>
     </section>
   </main>
+
   <footer class="py-8">
     <div class="max-w-4xl mx-auto px-4 text-center text-xs text-slate-500">rensoft · formulario rápido para choferes</div>
   </footer>
+
   <script>
     const params = new URLSearchParams(window.location.search);
     const fleetId = params.get('fleet');
@@ -92,6 +97,10 @@
     const logSection = document.getElementById('log');
     const entriesContainer = document.getElementById('entries');
     const exportBtn = document.getElementById('export');
+    exportBtn.disabled = true;
+
+    let dbInstance = null;
+
     function openFleetDb(){
       return new Promise((resolve, reject) => {
         if(!('indexedDB' in window)){
@@ -111,35 +120,84 @@
         };
         request.onsuccess = () => {
           const db = request.result;
-          db.onversionchange = () => db.close();
+          db.onversionchange = () => {
+            db.close();
+            dbInstance = null;
+          };
           resolve(db);
         };
         request.onerror = () => reject(request.error);
       });
     }
-    async function getFleet(){
-      const db = await openFleetDb();
+
+    async function getDb(){
+      if(dbInstance) return dbInstance;
+      dbInstance = await openFleetDb();
+      return dbInstance;
+    }
+
+    async function getFleet(id){
+      const db = await getDb();
       return new Promise((resolve, reject) => {
         const tx = db.transaction('fleets', 'readonly');
-        const store = tx.objectStore('fleets');
-        const request = store.get(fleetId);
-        request.onsuccess = () => {
-          db.close();
-          resolve(request.result);
-        };
-        request.onerror = () => {
-          db.close();
-          reject(request.error);
-        };
+        const request = tx.objectStore('fleets').get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
       });
     }
-    function disableForm(){
-      incidentForm.querySelectorAll('input, select, textarea, button').forEach(el => {
-        if(el.id !== 'export'){
-          el.disabled = true;
+
+    async function saveLogEntry(entry){
+      const db = await getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('logs', 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error('No se pudo guardar la novedad.'));
+        tx.objectStore('logs').add(entry);
+      });
+    }
+
+    async function getFleetLogs(fleet){
+      if(!fleet) return [];
+      const db = await getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('logs', 'readonly');
+        const index = tx.objectStore('logs').index('fleetId');
+        const request = index.getAll(fleet);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function loadFleet(){
+      if(!fleetId){
+        fleetLabel.textContent = 'FLOTA NO ENCONTRADA';
+        disableForm();
+        alert('No pudimos identificar la flota. Volvé a escanear un QR válido.');
+        return;
+      }
+      try{
+        const data = await getFleet(fleetId);
+        if(!data){
+          fleetLabel.textContent = 'FLOTA NO DISPONIBLE';
+          disableForm();
+          alert('No encontramos la flota asociada a este QR en la base local. Pedí al responsable que regenere el código.');
+          return;
         }
-      });
+        fleetLabel.textContent = data.fleetName?.toUpperCase() ?? 'FLOTA';
+        populateVehicles(data.vehicles ?? []);
+        document.title = `${data.fleetName} · novedades`;
+      }catch(error){
+        console.error('Error al cargar la flota', error);
+        disableForm();
+        alert(error?.message || 'Ocurrió un problema al leer los datos de la flota.');
+      }
     }
+
+    function disableForm(){
+      incidentForm.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
+      exportBtn.disabled = true;
+    }
+
     function populateVehicles(vehicles){
       vehicleSelect.innerHTML = '';
       if(!vehicles.length){
@@ -151,6 +209,8 @@
         incidentForm.querySelector('button[type="submit"]').disabled = true;
         return;
       }
+      vehicleSelect.disabled = false;
+      incidentForm.querySelector('button[type="submit"]').disabled = false;
       const defaultOption = document.createElement('option');
       defaultOption.value = '';
       defaultOption.textContent = 'Elegí un vehículo';
@@ -163,75 +223,50 @@
         vehicleSelect.appendChild(option);
       });
     }
-    function getLogKey(){
-      return `fleet-log-${fleetId}`;
-    }
-    async function saveEntry(entry){
-      const db = await openFleetDb();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('logs', 'readwrite');
-        tx.oncomplete = () => {
-          db.close();
-          resolve();
-        };
-        tx.onerror = () => {
-          db.close();
-          reject(tx.error || new Error('No se pudo guardar la novedad.'));
-        };
-        tx.objectStore('logs').add(entry);
-      });
-    }
-    async function fetchEntries(){
-      const db = await openFleetDb();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('logs', 'readonly');
-        const index = tx.objectStore('logs').index('fleetId');
-        const entries = [];
-        index.openCursor(IDBKeyRange.only(fleetId)).onsuccess = (event) => {
-          const cursor = event.target.result;
-          if(cursor){
-            entries.push(cursor.value);
-            cursor.continue();
-          }
-        };
-        tx.oncomplete = () => {
-          db.close();
-          resolve(entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-        };
-        tx.onerror = () => {
-          db.close();
-          reject(tx.error || new Error('No se pudieron leer las novedades.'));
-        };
-      });
-    }
-    function renderEntriesList(entries){
-      if(!entries.length){
+
+    async function renderEntries(){
+      if(!fleetId){
         logSection.classList.add('hidden');
         entriesContainer.innerHTML = '';
-        exportBtn.disabled = true;
         return;
       }
-      logSection.classList.remove('hidden');
-      exportBtn.disabled = false;
-      entriesContainer.innerHTML = '';
-      entries.forEach(entry => {
-        const container = document.createElement('div');
-        container.className = 'rounded-2xl border border-white/10 p-4 bg-[#090f1a]';
-        container.innerHTML = `
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div class="font-semibold">${entry.vehicle}</div>
-            <div class="text-xs text-slate-400">${new Date(entry.createdAt).toLocaleString()}</div>
-          </div>
-          <div class="text-xs uppercase tracking-wide mt-1 text-[#8fffe0]">${formatAction(entry.action)}</div>
-          <p class="mt-3 text-sm text-slate-200 whitespace-pre-wrap">${entry.details}</p>
-          <div class="grid md:grid-cols-2 gap-3 text-xs text-slate-400 mt-3">
-            ${entry.odometer ? `<div><span class="text-slate-500">Kilometraje:</span> ${entry.odometer} km</div>` : ''}
-            ${entry.cost ? `<div><span class="text-slate-500">Costo estimado:</span> $${Number(entry.cost).toFixed(2)}</div>` : ''}
-          </div>
-        `;
-        entriesContainer.appendChild(container);
-      });
+      try{
+        const entries = await getFleetLogs(fleetId);
+        if(!entries.length){
+          logSection.classList.add('hidden');
+          entriesContainer.innerHTML = '';
+          exportBtn.disabled = true;
+          return;
+        }
+        logSection.classList.remove('hidden');
+        exportBtn.disabled = false;
+        entriesContainer.innerHTML = '';
+        entries
+          .slice()
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .forEach(entry => {
+            const container = document.createElement('div');
+            container.className = 'rounded-2xl border border-white/10 p-4 bg-[#090f1a]';
+            container.innerHTML = `
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div class="font-semibold">${entry.vehicle}</div>
+                <div class="text-xs text-slate-400">${new Date(entry.createdAt).toLocaleString()}</div>
+              </div>
+              <div class="text-xs uppercase tracking-wide mt-1 text-[#8fffe0]">${formatAction(entry.action)}</div>
+              <p class="mt-3 text-sm text-slate-200 whitespace-pre-wrap">${entry.details}</p>
+              <div class="grid md:grid-cols-2 gap-3 text-xs text-slate-400 mt-3">
+                ${entry.odometer ? `<div><span class="text-slate-500">Kilometraje:</span> ${entry.odometer} km</div>` : ''}
+                ${entry.cost ? `<div><span class="text-slate-500">Costo estimado:</span> $${Number(entry.cost).toFixed(2)}</div>` : ''}
+              </div>
+            `;
+            entriesContainer.appendChild(container);
+          });
+      }catch(error){
+        console.error('Error al leer las novedades', error);
+        alert(error?.message || 'No pudimos leer el historial local de novedades.');
+      }
     }
+
     function formatAction(action){
       switch(action){
         case 'novedad-mecanica': return 'Novedad mecánica';
@@ -241,43 +276,23 @@
         default: return action;
       }
     }
-    async function loadFleet(){
-      if(!fleetId){
-        fleetLabel.textContent = 'FLOTA NO ENCONTRADA';
-        disableForm();
-        alert('No pudimos identificar la flota. Volvé a escanear un QR válido.');
-        return;
-      }
-      try {
-        const data = await getFleet();
-        if(!data){
-          fleetLabel.textContent = 'FLOTA NO DISPONIBLE';
-          disableForm();
-          alert('No encontramos la flota asociada a este QR en este dispositivo. Contactá al responsable para volver a generar el código.');
-          return;
-        }
-        fleetLabel.textContent = data.fleetName?.toUpperCase() ?? 'FLOTA SIN NOMBRE';
-        populateVehicles(data.vehicles ?? []);
-      } catch (error) {
-        console.error('Error al leer la flota', error);
-        fleetLabel.textContent = 'ERROR DE FLOTA';
-        disableForm();
-        alert('Hubo un problema al leer los datos de la flota.');
-      }
-    }
+
     incidentForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       if(!fleetId){
         alert('No hay flota asociada a este formulario.');
         return;
       }
+
       const vehicle = vehicleSelect.value;
       const action = actionSelect.value;
       const details = detailsInput.value.trim();
+
       if(!vehicle || !action || !details){
         alert('Completá vehículo, tipo de acción y descripción.');
         return;
       }
+
       const entry = {
         fleetId,
         vehicle,
@@ -287,53 +302,40 @@
         cost: costInput.value ? Number(costInput.value) : null,
         createdAt: new Date().toISOString()
       };
+
       try {
-        await saveEntry(entry);
-        detailsInput.value = '';
-        actionSelect.value = '';
-        odometerInput.value = '';
-        costInput.value = '';
-        vehicleSelect.value = '';
+        await saveLogEntry(entry);
+        incidentForm.reset();
         vehicleSelect.focus();
         await renderEntries();
       } catch (error) {
         console.error('Error al guardar la novedad', error);
-        alert(error?.message || 'No pudimos guardar la novedad.');
+        alert(error?.message || 'No pudimos guardar la novedad. Intentá de nuevo.');
       }
     });
+
     exportBtn.addEventListener('click', async () => {
       try {
-        const entries = await fetchEntries();
-        if(!entries.length){
-          alert('No hay novedades para exportar.');
-          return;
-        }
-        const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+        const entries = await getFleetLogs(fleetId);
+        const data = JSON.stringify(entries, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `novedades-${fleetId}.json`;
-        document.body.appendChild(link);
+        link.download = `novedades-${fleetId || 'sin-fleet'}.json`;
         link.click();
-        document.body.removeChild(link);
         URL.revokeObjectURL(url);
       } catch (error) {
-        console.error('Error al exportar las novedades', error);
+        console.error('Error al exportar novedades', error);
         alert(error?.message || 'No pudimos exportar las novedades.');
       }
     });
-    async function renderEntries(){
-      try {
-        const entries = await fetchEntries();
-        renderEntriesList(entries);
-      } catch (error) {
-        console.error('Error al leer las novedades', error);
-      }
-    }
+
     async function init(){
       await loadFleet();
       await renderEntries();
     }
+
     init();
   </script>
 </body>
