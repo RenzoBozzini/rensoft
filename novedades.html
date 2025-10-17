@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Novedades de flota — rensoft</title>
+  <meta name="description" content="Formulario rápido para registrar novedades de cada vehículo de la flota rensoft." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{font-family:Inter,system-ui;background:#060910;color:#e2e8f0}
+    .brand{font-family:Orbitron,Inter,system-ui}
+    .card{background:rgba(12,18,32,.92);border:1px solid rgba(255,255,255,.1)}
+    input, select, textarea{background:#0a1224;border:1px solid rgba(148,163,184,.35);border-radius:14px;padding:12px 14px;width:100%;color:#e2e8f0}
+    input:focus, select:focus, textarea:focus{outline:2px solid rgba(124,200,255,.4)}
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="sticky top-0 z-40 backdrop-blur bg-[#060910dd] border-b border-white/10">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2 text-slate-300 hover:text-white">
+        <span class="w-7 h-7 rounded-xl" style="background:linear-gradient(135deg,#00aaff,#00ffbb)"></span>
+        <span class="brand text-base font-semibold lowercase">rensoft</span>
+      </a>
+      <span id="fleet-label" class="text-xs text-slate-400 uppercase tracking-[0.2em]"></span>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <section class="max-w-4xl mx-auto px-4 py-10">
+      <div class="card rounded-3xl p-6 md:p-8">
+        <h1 class="text-2xl font-semibold">Registrar novedad</h1>
+        <p class="text-sm text-slate-400 mt-2">Completá el formulario desde el vehículo. Cada registro queda disponible para el responsable de la flota.</p>
+
+        <form id="incident-form" class="mt-6 grid gap-5">
+          <div class="grid md:grid-cols-2 gap-4">
+            <label class="grid gap-2 text-sm">
+              <span class="text-slate-300 text-xs uppercase tracking-wide">Vehículo</span>
+              <select id="vehicle" required></select>
+            </label>
+            <label class="grid gap-2 text-sm">
+              <span class="text-slate-300 text-xs uppercase tracking-wide">Tipo de acción</span>
+              <select id="action" required>
+                <option value="">Seleccionar…</option>
+                <option value="novedad-mecanica">Novedad mecánica</option>
+                <option value="carga-combustible">Carga de combustible</option>
+                <option value="mantenimiento-realizado">Mantenimiento realizado</option>
+                <option value="siniestro">Siniestro</option>
+              </select>
+            </label>
+          </div>
+          <label class="grid gap-2 text-sm">
+            <span class="text-slate-300 text-xs uppercase tracking-wide">Descripción</span>
+            <textarea id="details" rows="4" placeholder="Contanos qué ocurrió, costos, comprobantes…" required></textarea>
+          </label>
+          <div class="grid md:grid-cols-2 gap-4">
+            <label class="grid gap-2 text-sm">
+              <span class="text-slate-300 text-xs uppercase tracking-wide">Kilometraje actual (opcional)</span>
+              <input type="number" id="odometer" min="0" step="1" placeholder="Ingresa los km del tablero" />
+            </label>
+            <label class="grid gap-2 text-sm">
+              <span class="text-slate-300 text-xs uppercase tracking-wide">Costo estimado (opcional)</span>
+              <input type="number" id="cost" min="0" step="0.01" placeholder="0.00" />
+            </label>
+          </div>
+          <button type="submit" class="justify-self-start px-6 py-3 rounded-2xl bg-[#00ffbb] text-[#0b1018] font-semibold hover:bg-[#7affe0]">Guardar novedad</button>
+        </form>
+      </div>
+
+      <section id="log" class="mt-8 card rounded-3xl p-6 md:p-8 hidden">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <h2 class="text-xl font-semibold">Historial en este dispositivo</h2>
+          <button id="export" class="text-xs px-4 py-2 rounded-xl border border-[#00ffbb55] text-[#8fffe0] hover:bg-[#00ffbb22]">Exportar JSON</button>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Los registros se guardan localmente en este dispositivo hasta que el administrador los sincronice.</p>
+        <div id="entries" class="mt-5 space-y-4 text-sm"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="py-8">
+    <div class="max-w-4xl mx-auto px-4 text-center text-xs text-slate-500">rensoft · formulario rápido para choferes</div>
+  </footer>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const fleetId = params.get('fleet');
+    const fleetLabel = document.getElementById('fleet-label');
+    const vehicleSelect = document.getElementById('vehicle');
+    const actionSelect = document.getElementById('action');
+    const detailsInput = document.getElementById('details');
+    const odometerInput = document.getElementById('odometer');
+    const costInput = document.getElementById('cost');
+    const incidentForm = document.getElementById('incident-form');
+    const logSection = document.getElementById('log');
+    const entriesContainer = document.getElementById('entries');
+    const exportBtn = document.getElementById('export');
+
+    function loadFleet(){
+      if(!fleetId){
+        fleetLabel.textContent = 'FLOTA NO ENCONTRADA';
+        disableForm();
+        alert('No pudimos identificar la flota. Volvé a escanear un QR válido.');
+        return;
+      }
+      const raw = localStorage.getItem(`fleet-${fleetId}`);
+      if(!raw){
+        fleetLabel.textContent = 'FLOTA NO DISPONIBLE';
+        disableForm();
+        alert('No encontramos la flota asociada a este QR en este dispositivo. Contactá al responsable para volver a generar el código.');
+        return;
+      }
+      try{
+        const data = JSON.parse(raw);
+        fleetLabel.textContent = data.fleetName?.toUpperCase() ?? 'FLOTA SIN NOMBRE';
+        populateVehicles(data.vehicles ?? []);
+      }catch(error){
+        console.error('Error al leer la flota', error);
+        fleetLabel.textContent = 'ERROR DE FLOTA';
+        disableForm();
+        alert('Hubo un problema al leer los datos de la flota.');
+      }
+    }
+
+    function disableForm(){
+      incidentForm.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
+    }
+
+    function populateVehicles(vehicles){
+      vehicleSelect.innerHTML = '';
+      if(!vehicles.length){
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No hay vehículos cargados';
+        vehicleSelect.appendChild(option);
+        vehicleSelect.disabled = true;
+        incidentForm.querySelector('button[type="submit"]').disabled = true;
+        return;
+      }
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Elegí un vehículo';
+      vehicleSelect.appendChild(defaultOption);
+      vehicles.forEach(vehicle => {
+        const option = document.createElement('option');
+        option.value = vehicle.plate;
+        const internal = vehicle.internal ? ` · ${vehicle.internal}` : '';
+        option.textContent = `${vehicle.plate} · ${vehicle.brand} ${vehicle.model}${internal}`;
+        vehicleSelect.appendChild(option);
+      });
+    }
+
+    function getLogKey(){
+      return `fleet-log-${fleetId}`;
+    }
+
+    function saveEntry(entry){
+      const key = getLogKey();
+      const current = JSON.parse(localStorage.getItem(key) || '[]');
+      current.unshift(entry);
+      localStorage.setItem(key, JSON.stringify(current));
+      renderEntries();
+    }
+
+    function renderEntries(){
+      const key = getLogKey();
+      const entries = JSON.parse(localStorage.getItem(key) || '[]');
+      if(!entries.length){
+        logSection.classList.add('hidden');
+        return;
+      }
+      logSection.classList.remove('hidden');
+      entriesContainer.innerHTML = '';
+      entries.forEach(entry => {
+        const container = document.createElement('div');
+        container.className = 'rounded-2xl border border-white/10 p-4 bg-[#090f1a]';
+        container.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div class="font-semibold">${entry.vehicle}</div>
+            <div class="text-xs text-slate-400">${new Date(entry.createdAt).toLocaleString()}</div>
+          </div>
+          <div class="text-xs uppercase tracking-wide mt-1 text-[#8fffe0]">${formatAction(entry.action)}</div>
+          <p class="mt-3 text-sm text-slate-200 whitespace-pre-wrap">${entry.details}</p>
+          <div class="grid md:grid-cols-2 gap-3 text-xs text-slate-400 mt-3">
+            ${entry.odometer ? `<div><span class="text-slate-500">Kilometraje:</span> ${entry.odometer} km</div>` : ''}
+            ${entry.cost ? `<div><span class="text-slate-500">Costo estimado:</span> $${Number(entry.cost).toFixed(2)}</div>` : ''}
+          </div>
+        `;
+        entriesContainer.appendChild(container);
+      });
+    }
+
+    function formatAction(action){
+      switch(action){
+        case 'novedad-mecanica': return 'Novedad mecánica';
+        case 'carga-combustible': return 'Carga de combustible';
+        case 'mantenimiento-realizado': return 'Mantenimiento realizado';
+        case 'siniestro': return 'Siniestro';
+        default: return action;
+      }
+    }
+
+    incidentForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if(!fleetId){
+        alert('No hay flota asociada a este formulario.');
+        return;
+      }
+      const vehicle = vehicleSelect.value;
+      const action = actionSelect.value;
+      const details = detailsInput.value.trim();
+      if(!vehicle || !action || !details){
+        alert('Completá vehículo, tipo de acción y descripción.');
+        return;
+      }
+      const entry = {
+        vehicle,
+        action,
+        details,
+        odometer: odometerInput.value ? Number(odometerInput.value) : null,
+        cost: costInput.value ? Number(costInput.value) : null,
+        createdAt: new Date().toISOString()
+      };
+      saveEntry(entry);
+      incidentForm.reset();
+      vehicleSelect.focus();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      const data = localStorage.getItem(getLogKey()) || '[]';
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `novedades-${fleetId}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    loadFleet();
+    renderEntries();
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registro de flotas — rensoft</title>
+  <meta name="description" content="Alta segura de administradores de flotas con generación de código QR para reportes de vehículos." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            orbprimary: '#0b1018',
+            orbaccent: '#00ffbb',
+            orbaccent2: '#7cc8ff'
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui'],
+            orbitron: ['Orbitron', 'Inter', 'system-ui']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body{font-family:Inter,system-ui;background:#0b1018;color:#e2e8f0}
+    .brand{font-family:Orbitron,Inter,system-ui}
+    .bg-orb{
+      background:
+        radial-gradient(1200px 600px at 90% -10%, rgba(14,165,233,.22), transparent 60%),
+        radial-gradient(900px 600px at -10% 110%, rgba(0,255,187,.18), transparent 60%);
+    }
+    .card{background:rgba(13,17,23,.88);border:1px solid rgba(255,255,255,.12)}
+    label span{display:block;font-size:13px;color:#cbd5e1;margin-bottom:6px}
+    input, select, textarea{background:#0c1422;border:1px solid rgba(148,163,184,.35);border-radius:14px;padding:12px 14px;width:100%;color:#e2e8f0}
+    input:focus, select:focus, textarea:focus{outline:2px solid rgba(0,255,187,.35)}
+  </style>
+</head>
+<body class="bg-orb min-h-screen flex flex-col">
+  <header class="sticky top-0 z-50 backdrop-blur bg-[#0b1018cc] border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl" style="background:linear-gradient(135deg,#00aaff,#00ffbb)"></span>
+        <span class="brand text-lg font-extrabold tracking-wide lowercase">rensoft</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-[15px]">
+        <a href="index.html#como-funciona" class="hover:text-[#8fffe0]">Cómo funciona</a>
+        <a href="index.html#planes" class="hover:text-[#8fffe0]">Planes</a>
+        <a href="contacto.html" class="hover:text-[#8fffe0]">Contacto</a>
+        <a href="registro.html" class="px-3 py-1.5 rounded-xl border border-[#00ffbb55] text-[#8fffe0] hover:bg-[#00ffbb22]">Registro</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <section class="max-w-4xl mx-auto px-4 py-12">
+      <h1 class="brand text-3xl md:text-4xl font-bold lowercase">registro de flotas</h1>
+      <p class="text-slate-400 mt-3 text-[15px] leading-relaxed">
+        Completá el formulario para crear un usuario administrador, cargar los vehículos de tu flota y obtener un código QR seguro.
+        Ese código te permitirá reportar novedades desde cualquier celular sin exponer la contraseña del panel principal.
+      </p>
+
+      <form id="fleet-form" class="card rounded-3xl mt-8 p-6 md:p-8 grid gap-6">
+        <div class="grid md:grid-cols-2 gap-5">
+          <label>
+            <span>Nombre de usuario</span>
+            <input type="text" id="username" name="username" autocomplete="username" required minlength="4" placeholder="p.ej. gestion-frota" />
+          </label>
+          <label>
+            <span>Contraseña</span>
+            <div class="relative">
+              <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo 8 caracteres" />
+              <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 px-3 text-xs text-slate-400 hover:text-white">Mostrar</button>
+            </div>
+            <small id="password-hint" class="text-xs text-slate-400 block mt-1">Usá mayúsculas, minúsculas y números para mayor seguridad.</small>
+          </label>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5">
+          <label>
+            <span>Nombre</span>
+            <input type="text" id="firstName" name="firstName" autocomplete="given-name" required />
+          </label>
+          <label>
+            <span>Apellido</span>
+            <input type="text" id="lastName" name="lastName" autocomplete="family-name" required />
+          </label>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5">
+          <label>
+            <span>Correo electrónico</span>
+            <input type="email" id="email" name="email" autocomplete="email" required />
+          </label>
+          <label>
+            <span>Nombre de la flota</span>
+            <input type="text" id="fleetName" name="fleetName" required placeholder="p.ej. Taxis Rosario" />
+          </label>
+        </div>
+
+        <div class="border border-white/10 rounded-3xl p-5 bg-[#0e1626]">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 class="text-lg font-semibold">Vehículos de la flota</h2>
+              <p class="text-xs text-slate-400 mt-1">Cargá todos los móviles que quieras administrar. Podés editar o quitar cada ficha.</p>
+            </div>
+            <button type="button" id="add-vehicle" class="px-4 py-2 rounded-xl border border-[#00ffbb55] text-[#8fffe0] hover:bg-[#00ffbb22] text-sm font-semibold">+ agregar un vehículo</button>
+          </div>
+          <div id="vehicles" class="grid gap-4 mt-5"></div>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div class="text-xs text-slate-500">
+            Al finalizar se generará un QR único para esta flota. Guardalo y pegalo en el parabrisas de cada vehículo.
+          </div>
+          <button type="submit" class="px-6 py-3 rounded-2xl bg-[#00ffbb] text-[#0b1018] font-semibold hover:bg-[#7affe0]">Generar QR de registro</button>
+        </div>
+      </form>
+
+      <section id="result" class="mt-10 hidden">
+        <div class="card rounded-3xl p-6 md:p-8">
+          <h2 class="text-2xl font-semibold">QR generado</h2>
+          <p class="text-sm text-slate-400 mt-2">
+            Escaneá el código para cargar novedades de los vehículos. Podés descargarlo o imprimirlo.
+          </p>
+          <div id="qr" class="mt-6 flex flex-col md:flex-row md:items-center gap-6">
+            <div class="p-4 bg-white rounded-3xl flex items-center justify-center">
+              <div id="qr-code"></div>
+            </div>
+            <div class="space-y-3 text-sm text-slate-300">
+              <div><strong>Flota:</strong> <span id="summary-fleet"></span></div>
+              <div><strong>Responsable:</strong> <span id="summary-manager"></span></div>
+              <div>
+                <strong>Vehículos:</strong>
+                <ul id="summary-vehicles" class="list-disc list-inside text-slate-400 mt-1"></ul>
+              </div>
+              <a id="qr-link" href="#" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#00ffbb55] text-[#8fffe0] hover:bg-[#00ffbb22] text-xs font-semibold">Abrir formulario de novedades</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="py-10">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row gap-4 md:items-center justify-between text-sm text-slate-400">
+      <div>© <span id="year"></span> rensoft. todos los derechos reservados.</div>
+      <div>rensoft.com.ar</div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script>
+    const form = document.getElementById('fleet-form');
+    const vehiclesContainer = document.getElementById('vehicles');
+    const addVehicleBtn = document.getElementById('add-vehicle');
+    const qrContainer = document.getElementById('qr-code');
+    const resultSection = document.getElementById('result');
+    const summaryFleet = document.getElementById('summary-fleet');
+    const summaryManager = document.getElementById('summary-manager');
+    const summaryVehicles = document.getElementById('summary-vehicles');
+    const qrLink = document.getElementById('qr-link');
+    const togglePassword = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('password');
+
+    let vehicleIndex = 0;
+
+    function createVehicleCard(index){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'card rounded-2xl p-5 grid gap-4 relative';
+      wrapper.dataset.vehicleIndex = index.toString();
+      wrapper.innerHTML = `
+        <button type="button" data-remove="${index}" class="absolute -top-2 -right-2 bg-[#1f2933] text-xs px-2 py-1 rounded-full border border-white/10 hover:bg-[#ef4444] hover:text-white">Quitar</button>
+        <div class="grid md:grid-cols-2 gap-4">
+          <label>
+            <span>Dominio / patente</span>
+            <input type="text" name="vehicle-${index}-plate" required placeholder="AA123BB" maxlength="7" />
+          </label>
+          <label>
+            <span>Marca</span>
+            <input type="text" name="vehicle-${index}-brand" required placeholder="Toyota" />
+          </label>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <label>
+            <span>Modelo</span>
+            <input type="text" name="vehicle-${index}-model" required placeholder="Corolla" />
+          </label>
+          <label>
+            <span>Año de fabricación</span>
+            <input type="number" name="vehicle-${index}-year" required min="1970" max="${new Date().getFullYear() + 1}" />
+          </label>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <label>
+            <span>Categoría (opcional)</span>
+            <input type="text" name="vehicle-${index}-category" placeholder="Taxi, utilitario..." />
+          </label>
+          <label>
+            <span>Identificación interna (opcional)</span>
+            <input type="text" name="vehicle-${index}-internal" placeholder="Unidad 12, interno 4..." />
+          </label>
+        </div>
+      `;
+      return wrapper;
+    }
+
+    function addVehicle(){
+      const card = createVehicleCard(vehicleIndex++);
+      vehiclesContainer.appendChild(card);
+      refreshRemoveButtons();
+    }
+
+    function refreshRemoveButtons(){
+      vehiclesContainer.querySelectorAll('button[data-remove]').forEach(btn => {
+        btn.onclick = () => {
+          const idx = Number(btn.dataset.remove);
+          const card = vehiclesContainer.querySelector(`[data-vehicle-index="${idx}"]`);
+          if(card){
+            card.remove();
+            if(!vehiclesContainer.children.length){
+              vehicleIndex = 0;
+              addVehicle();
+            }
+          }
+        };
+      });
+    }
+
+    async function hashPassword(password){
+      if(window.crypto?.subtle){
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const digest = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+      return btoa(password);
+    }
+
+    function generateFleetId(){
+      if(window.crypto?.randomUUID){
+        return crypto.randomUUID();
+      }
+      return 'fleet-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+
+    function clearQR(){
+      qrContainer.innerHTML = '';
+    }
+
+    function renderQR(url){
+      clearQR();
+      const canvas = document.createElement('canvas');
+      qrContainer.appendChild(canvas);
+      QRCode.toCanvas(canvas, url, { width: 220, margin: 1, color: { dark: '#0b1018', light: '#ffffff' } });
+    }
+
+    function buildVehicleSummary(vehicles){
+      summaryVehicles.innerHTML = '';
+      vehicles.forEach(v => {
+        const li = document.createElement('li');
+        li.textContent = `${v.plate} · ${v.brand} ${v.model}`;
+        summaryVehicles.appendChild(li);
+      });
+    }
+
+    addVehicleBtn.addEventListener('click', addVehicle);
+    addVehicle();
+
+    togglePassword.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePassword.textContent = type === 'password' ? 'Mostrar' : 'Ocultar';
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(form);
+      const vehicles = [];
+      const vehicleCards = Array.from(vehiclesContainer.children);
+
+      for (const card of vehicleCards){
+        const idx = Number(card.dataset.vehicleIndex);
+        const plate = formData.get(`vehicle-${idx}-plate`)?.toString().trim();
+        const brand = formData.get(`vehicle-${idx}-brand`)?.toString().trim();
+        const model = formData.get(`vehicle-${idx}-model`)?.toString().trim();
+        const year = formData.get(`vehicle-${idx}-year`)?.toString().trim();
+        const category = formData.get(`vehicle-${idx}-category`)?.toString().trim();
+        const internal = formData.get(`vehicle-${idx}-internal`)?.toString().trim();
+
+        if(!plate || !brand || !model || !year){
+          alert('Completá todos los campos obligatorios de los vehículos.');
+          return;
+        }
+
+        vehicles.push({ plate, brand, model, year, category: category || null, internal: internal || null });
+      }
+
+      if(!vehicles.length){
+        alert('Tenés que cargar al menos un vehículo.');
+        return;
+      }
+
+      const fleetId = generateFleetId();
+      const payload = {
+        username: formData.get('username')?.toString().trim(),
+        passwordHash: await hashPassword(formData.get('password')?.toString() ?? ''),
+        firstName: formData.get('firstName')?.toString().trim(),
+        lastName: formData.get('lastName')?.toString().trim(),
+        email: formData.get('email')?.toString().trim(),
+        fleetName: formData.get('fleetName')?.toString().trim(),
+        vehicles,
+        createdAt: new Date().toISOString()
+      };
+
+      localStorage.setItem(`fleet-${fleetId}`, JSON.stringify(payload));
+
+      const qrUrl = new URL(`novedades.html?fleet=${encodeURIComponent(fleetId)}`, window.location.href).toString();
+      renderQR(qrUrl);
+
+      summaryFleet.textContent = payload.fleetName;
+      summaryManager.textContent = `${payload.firstName} ${payload.lastName} · ${payload.email}`;
+      buildVehicleSummary(vehicles);
+      qrLink.href = qrUrl;
+
+      resultSection.classList.remove('hidden');
+      resultSection.scrollIntoView({ behavior: 'smooth' });
+      form.reset();
+      vehiclesContainer.innerHTML = '';
+      vehicleIndex = 0;
+      addVehicle();
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
+
