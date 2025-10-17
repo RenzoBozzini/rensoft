@@ -64,11 +64,11 @@
         Ese código te permitirá reportar novedades desde cualquier celular sin exponer la contraseña del panel principal.
       </p>
 
-      <form id="fleet-form" class="card rounded-3xl mt-8 p-6 md:p-8 grid gap-6">
+      <form id="fleet-form" class="card rounded-3xl mt-8 p-6 md:p-8 grid gap-6" novalidate>
         <div class="grid md:grid-cols-2 gap-5">
           <label>
             <span>Nombre de usuario</span>
-            <input type="text" id="username" name="username" autocomplete="username" required minlength="4" placeholder="p.ej. gestion-frota" />
+            <input type="text" id="username" name="username" autocomplete="username" required minlength="4" placeholder="p.ej. gestion-flota" />
           </label>
           <label>
             <span>Contraseña</span>
@@ -79,8 +79,9 @@
             <small id="password-hint" class="text-xs text-slate-400 block mt-1">Usá mayúsculas, minúsculas y números para mayor seguridad.</small>
           </label>
         </div>
+
         <div class="grid md:grid-cols-2 gap-5">
-          <label class="md:col-span-1">
+          <label>
             <span>Confirmar contraseña</span>
             <div class="relative">
               <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" required minlength="8" placeholder="Repetí la contraseña" />
@@ -89,6 +90,7 @@
           </label>
           <div class="hidden md:block"></div>
         </div>
+
         <div class="grid md:grid-cols-2 gap-5">
           <label>
             <span>Nombre</span>
@@ -99,6 +101,7 @@
             <input type="text" id="lastName" name="lastName" autocomplete="family-name" required />
           </label>
         </div>
+
         <div class="grid md:grid-cols-2 gap-5">
           <label>
             <span>Correo electrónico</span>
@@ -161,26 +164,40 @@
   <script>
     let qrCodeLoaderPromise = null;
 
-    function loadQRCodeLibrary(){
-      if(window.QRCode){
-        return Promise.resolve(window.QRCode);
-      }
-      if(!qrCodeLoaderPromise){
-        qrCodeLoaderPromise = new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-          script.async = true;
-          script.onload = () => {
-            if(window.QRCode){
-              resolve(window.QRCode);
-            }else{
-              reject(new Error('La librería de QR no se inicializó correctamente.'));
+    // Carga la librería local con fallback a CDNs
+    function loadQRCodeLibrary() {
+      if (window.QRCode) return Promise.resolve(window.QRCode);
+
+      if (!qrCodeLoaderPromise) {
+        qrCodeLoaderPromise = new Promise(async (resolve, reject) => {
+          const sources = [
+            'js/qrcode.min.js', // local
+            'https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js', // fallback 1
+            'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js' // fallback 2
+          ];
+
+          for (const src of sources) {
+            try {
+              await new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.async = true;
+                s.onload = () => (window.QRCode ? res() : rej(new Error('La librería cargó pero no expuso QRCode')));
+                s.onerror = () => rej(new Error('Fallo al cargar: ' + src));
+                document.head.appendChild(s);
+              });
+              if (window.QRCode && typeof window.QRCode.toCanvas === 'function') {
+                resolve(window.QRCode);
+                return;
+              }
+            } catch (err) {
+              console.warn(err.message);
             }
-          };
-          script.onerror = () => reject(new Error('No se pudo cargar la librería para generar códigos QR. Verificá tu conexión e intentá de nuevo.'));
-          document.head.appendChild(script);
+          }
+          reject(new Error('No se pudo cargar ninguna fuente de la librería QRCode.'));
         });
       }
+
       return qrCodeLoaderPromise;
     }
 
@@ -388,7 +405,7 @@
     }
 
     addVehicleBtn.addEventListener('click', addVehicle);
-    addVehicle();
+    addVehicle(); // crea "Vehículo 1" por defecto
 
     document.querySelectorAll('.password-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -403,6 +420,9 @@
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+
+      // Fuerza la validación nativa (muestra qué falta si algo está incompleto)
+      if (!form.reportValidity()) return;
 
       try {
         if(passwordInput.value !== confirmPasswordInput.value){
