@@ -27,13 +27,11 @@
       <span id="fleet-label" class="text-xs text-slate-400 uppercase tracking-[0.2em]"></span>
     </div>
   </header>
-
   <main class="flex-1">
     <section class="max-w-4xl mx-auto px-4 py-10">
       <div class="card rounded-3xl p-6 md:p-8">
         <h1 class="text-2xl font-semibold">Registrar novedad</h1>
         <p class="text-sm text-slate-400 mt-2">Completá el formulario desde el vehículo. Cada registro queda disponible para el responsable de la flota.</p>
-
         <form id="incident-form" class="mt-6 grid gap-5">
           <div class="grid md:grid-cols-2 gap-4">
             <label class="grid gap-2 text-sm">
@@ -68,7 +66,6 @@
           <button type="submit" class="justify-self-start px-6 py-3 rounded-2xl bg-[#00ffbb] text-[#0b1018] font-semibold hover:bg-[#7affe0]">Guardar novedad</button>
         </form>
       </div>
-
       <section id="log" class="mt-8 card rounded-3xl p-6 md:p-8 hidden">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <h2 class="text-xl font-semibold">Historial en este dispositivo</h2>
@@ -79,11 +76,9 @@
       </section>
     </section>
   </main>
-
   <footer class="py-8">
     <div class="max-w-4xl mx-auto px-4 text-center text-xs text-slate-500">rensoft · formulario rápido para choferes</div>
   </footer>
-
   <script>
     const params = new URLSearchParams(window.location.search);
     const fleetId = params.get('fleet');
@@ -97,37 +92,54 @@
     const logSection = document.getElementById('log');
     const entriesContainer = document.getElementById('entries');
     const exportBtn = document.getElementById('export');
-
-    function loadFleet(){
-      if(!fleetId){
-        fleetLabel.textContent = 'FLOTA NO ENCONTRADA';
-        disableForm();
-        alert('No pudimos identificar la flota. Volvé a escanear un QR válido.');
-        return;
-      }
-      const raw = localStorage.getItem(`fleet-${fleetId}`);
-      if(!raw){
-        fleetLabel.textContent = 'FLOTA NO DISPONIBLE';
-        disableForm();
-        alert('No encontramos la flota asociada a este QR en este dispositivo. Contactá al responsable para volver a generar el código.');
-        return;
-      }
-      try{
-        const data = JSON.parse(raw);
-        fleetLabel.textContent = data.fleetName?.toUpperCase() ?? 'FLOTA SIN NOMBRE';
-        populateVehicles(data.vehicles ?? []);
-      }catch(error){
-        console.error('Error al leer la flota', error);
-        fleetLabel.textContent = 'ERROR DE FLOTA';
-        disableForm();
-        alert('Hubo un problema al leer los datos de la flota.');
-      }
+    function openFleetDb(){
+      return new Promise((resolve, reject) => {
+        if(!('indexedDB' in window)){
+          reject(new Error('IndexedDB no está disponible en este navegador.'));
+          return;
+        }
+        const request = indexedDB.open('rensoft-db', 1);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if(!db.objectStoreNames.contains('fleets')){
+            db.createObjectStore('fleets', { keyPath: 'id' });
+          }
+          if(!db.objectStoreNames.contains('logs')){
+            const logsStore = db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+            logsStore.createIndex('fleetId', 'fleetId', { unique: false });
+          }
+        };
+        request.onsuccess = () => {
+          const db = request.result;
+          db.onversionchange = () => db.close();
+          resolve(db);
+        };
+        request.onerror = () => reject(request.error);
+      });
     }
-
+    async function getFleet(){
+      const db = await openFleetDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('fleets', 'readonly');
+        const store = tx.objectStore('fleets');
+        const request = store.get(fleetId);
+        request.onsuccess = () => {
+          db.close();
+          resolve(request.result);
+        };
+        request.onerror = () => {
+          db.close();
+          reject(request.error);
+        };
+      });
+    }
     function disableForm(){
-      incidentForm.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
+      incidentForm.querySelectorAll('input, select, textarea, button').forEach(el => {
+        if(el.id !== 'export'){
+          el.disabled = true;
+        }
+      });
     }
-
     function populateVehicles(vehicles){
       vehicleSelect.innerHTML = '';
       if(!vehicles.length){
@@ -151,27 +163,56 @@
         vehicleSelect.appendChild(option);
       });
     }
-
     function getLogKey(){
       return `fleet-log-${fleetId}`;
     }
-
-    function saveEntry(entry){
-      const key = getLogKey();
-      const current = JSON.parse(localStorage.getItem(key) || '[]');
-      current.unshift(entry);
-      localStorage.setItem(key, JSON.stringify(current));
-      renderEntries();
+    async function saveEntry(entry){
+      const db = await openFleetDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('logs', 'readwrite');
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error || new Error('No se pudo guardar la novedad.'));
+        };
+        tx.objectStore('logs').add(entry);
+      });
     }
-
-    function renderEntries(){
-      const key = getLogKey();
-      const entries = JSON.parse(localStorage.getItem(key) || '[]');
+    async function fetchEntries(){
+      const db = await openFleetDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('logs', 'readonly');
+        const index = tx.objectStore('logs').index('fleetId');
+        const entries = [];
+        index.openCursor(IDBKeyRange.only(fleetId)).onsuccess = (event) => {
+          const cursor = event.target.result;
+          if(cursor){
+            entries.push(cursor.value);
+            cursor.continue();
+          }
+        };
+        tx.oncomplete = () => {
+          db.close();
+          resolve(entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error || new Error('No se pudieron leer las novedades.'));
+        };
+      });
+    }
+    function renderEntriesList(entries){
       if(!entries.length){
         logSection.classList.add('hidden');
+        entriesContainer.innerHTML = '';
+        exportBtn.disabled = true;
         return;
       }
       logSection.classList.remove('hidden');
+      exportBtn.disabled = false;
       entriesContainer.innerHTML = '';
       entries.forEach(entry => {
         const container = document.createElement('div');
@@ -191,7 +232,6 @@
         entriesContainer.appendChild(container);
       });
     }
-
     function formatAction(action){
       switch(action){
         case 'novedad-mecanica': return 'Novedad mecánica';
@@ -201,8 +241,31 @@
         default: return action;
       }
     }
-
-    incidentForm.addEventListener('submit', (event) => {
+    async function loadFleet(){
+      if(!fleetId){
+        fleetLabel.textContent = 'FLOTA NO ENCONTRADA';
+        disableForm();
+        alert('No pudimos identificar la flota. Volvé a escanear un QR válido.');
+        return;
+      }
+      try {
+        const data = await getFleet();
+        if(!data){
+          fleetLabel.textContent = 'FLOTA NO DISPONIBLE';
+          disableForm();
+          alert('No encontramos la flota asociada a este QR en este dispositivo. Contactá al responsable para volver a generar el código.');
+          return;
+        }
+        fleetLabel.textContent = data.fleetName?.toUpperCase() ?? 'FLOTA SIN NOMBRE';
+        populateVehicles(data.vehicles ?? []);
+      } catch (error) {
+        console.error('Error al leer la flota', error);
+        fleetLabel.textContent = 'ERROR DE FLOTA';
+        disableForm();
+        alert('Hubo un problema al leer los datos de la flota.');
+      }
+    }
+    incidentForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       if(!fleetId){
         alert('No hay flota asociada a este formulario.');
@@ -216,6 +279,7 @@
         return;
       }
       const entry = {
+        fleetId,
         vehicle,
         action,
         details,
@@ -223,24 +287,54 @@
         cost: costInput.value ? Number(costInput.value) : null,
         createdAt: new Date().toISOString()
       };
-      saveEntry(entry);
-      incidentForm.reset();
-      vehicleSelect.focus();
+      try {
+        await saveEntry(entry);
+        detailsInput.value = '';
+        actionSelect.value = '';
+        odometerInput.value = '';
+        costInput.value = '';
+        vehicleSelect.value = '';
+        vehicleSelect.focus();
+        await renderEntries();
+      } catch (error) {
+        console.error('Error al guardar la novedad', error);
+        alert(error?.message || 'No pudimos guardar la novedad.');
+      }
     });
-
-    exportBtn.addEventListener('click', () => {
-      const data = localStorage.getItem(getLogKey()) || '[]';
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `novedades-${fleetId}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+    exportBtn.addEventListener('click', async () => {
+      try {
+        const entries = await fetchEntries();
+        if(!entries.length){
+          alert('No hay novedades para exportar.');
+          return;
+        }
+        const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `novedades-${fleetId}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error al exportar las novedades', error);
+        alert(error?.message || 'No pudimos exportar las novedades.');
+      }
     });
-
-    loadFleet();
-    renderEntries();
+    async function renderEntries(){
+      try {
+        const entries = await fetchEntries();
+        renderEntriesList(entries);
+      } catch (error) {
+        console.error('Error al leer las novedades', error);
+      }
+    }
+    async function init(){
+      await loadFleet();
+      await renderEntries();
+    }
+    init();
   </script>
 </body>
 </html>
